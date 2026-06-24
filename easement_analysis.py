@@ -240,7 +240,6 @@ def save_raster(input_raster_path, raster_classifications, symbology_dir, output
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
     # Ensure no issues with data type or NO_DATA
-    
     out_raster = arcpy.sa.Int(out_raster)
     out_raster = arcpy.sa.SetNull(out_raster == NO_DATA, out_raster)
 
