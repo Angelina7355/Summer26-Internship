@@ -221,7 +221,6 @@ def clip_raster_to_polygon(active_map, raster_path, input_polygon):
 def save_raster(input_raster_path, raster_classifications, symbology_dir, output_path):
     # Preserve and save output as spatial reference (based on the input's spatial data)
     arcpy.AddMessage("Saving output raster...")
-    os.makedirs(output_path, exist_ok=True)
     
     raster_obj = arcpy.Raster(input_raster_path)
 
