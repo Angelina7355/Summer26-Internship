@@ -1,3 +1,6 @@
+##################################################
+#        Environment Setup & Verification        #
+##################################################
 import sys
 print("Current Python executable:")
 print(sys.executable)
@@ -7,6 +10,15 @@ print("\n\nAvailable conda environments:")
 
 print("\nInstalled packages in the active environment:")
 !conda list
+
+
+##################################################
+#              Global Definitions                #
+##################################################
+
+# ----------------------------------------
+# Classes
+# ----------------------------------------
 
 # Class dictionary
 CLASSES = {
@@ -33,6 +45,23 @@ STRUCTURES = CLASSES["STRUCTURES"]
 IMPERVIOUS_SURFACES = CLASSES["IMPERVIOUS SURFACES"]
 IMPERVIOUS_ROADS = CLASSES["IMPERVIOUS ROADS"]
 NO_DATA = CLASSES["NO DATA"]
+
+
+# ----------------------------------------
+# Internal Datasets
+# ----------------------------------------
+EASEMENT_POINTS_NAME = "Easement_Points"
+USA_RASTER_NAME = "NAIP_USDA_CONUS_PRIME"
+
+
+##################################################
+#                Helper Functions                #
+##################################################
+
+
+# ----------------------------------------
+# NDVI & DL Functions
+# ----------------------------------------
 
 def compute_ndvi_and_classify(input_raster, show_visual):
     raster = arcpy.Raster(input_raster)
@@ -75,11 +104,9 @@ def compute_ndvi_and_classify(input_raster, show_visual):
     return ndvi, ndvi_class
 
 
-
 def run_dl_model(input_raster, model_path):
     raster = arcpy.Raster(input_raster)
     
-   
     # Extract RGB only (bands 1–3) for input into DL model
     rgb_raster = arcpy.management.CompositeBands(
         [
@@ -96,7 +123,6 @@ def run_dl_model(input_raster, model_path):
 
     result = ClassifyPixelsUsingDeepLearning(rgb_raster, model_path)
     return result
-
 
 
 def fuse_results(ndvi_class, dl_class):
@@ -125,6 +151,11 @@ def fuse_results(ndvi_class, dl_class):
     print("Final classes:", np.unique(final))
 
     return final
+
+
+# ----------------------------------------
+# Raster Input Functions
+# ----------------------------------------
 
 def get_polygon(pipeline_line, easement_points, output_fc):
     # Get polygon based on pipeline and closest easement point
@@ -171,6 +202,7 @@ def get_polygon(pipeline_line, easement_points, output_fc):
 
     return polygon
 
+
 def clip_raster_to_polygon(active_map, raster_path, input_polygon):
     # Specify active map for sourcing raster layer
     m = active_map
@@ -196,6 +228,11 @@ def clip_raster_to_polygon(active_map, raster_path, input_polygon):
     )
 
     return clipped_raster
+
+
+# ----------------------------------------
+# Raster Output Functions
+# ----------------------------------------
 
 def save_raster(input_raster_path, raster_classifications, symbology_dir, output_dir):
     # Preserve and save output as spatial reference (based on the input's spatial data)
@@ -236,6 +273,11 @@ def save_raster(input_raster_path, raster_classifications, symbology_dir, output
     
     return output_path
 
+
+##################################################
+#           Easement Analysis Pipeline           #
+##################################################
+
 def analyze_easement(clipped_raster, model_path):
     # Run NDVI pipeline (NumPy)
     print("Running NDVI pipeline...")
@@ -260,27 +302,35 @@ def analyze_easement(clipped_raster, model_path):
     print("Easement analysis complete")
     return final_classifications
 
+
+##################################################
+#                 Main Execution                 #
+##################################################
+
+
+# ----------------------------------------
+# Imports & Setup
+# ----------------------------------------
+
 # Imports
 print("Starting imports...")
 import os
-
 import arcpy
-
 import numpy as np
-
 from arcgis.gis import GIS
-
 from arcpy.sa import ExtractByMask
-
 from arcpy.ia import ClassifyPixelsUsingDeepLearning
 
 # Global setting
 arcpy.env.overwriteOutput = True
-
 print("Imports complete")
 
-def main():
-    # Connect
+
+# ----------------------------------------
+# Main Function
+# ----------------------------------------
+
+def main(pipeline_selection, output_raster):
     print("Starting connect to GIS...")
     gis = GIS("home")
     print("GIS connection complete")
@@ -288,37 +338,47 @@ def main():
     # Directory structure
     aprx = arcpy.mp.ArcGISProject("CURRENT")
     project_dir = os.path.dirname(aprx.filePath)
+
     data_dir = os.path.join(project_dir, "data")
     dl_model_dir = os.path.join(project_dir, "dl_model")
     symbology_dir = os.path.join(project_dir, "symbology")
-    output_dir = os.path.join(project_dir, "outputs")
     
-    # Map & Layer Structure
-    m = aprx.listMaps("Map2")[0]
-    buffer_fc = os.path.join("in_memory", "easement_buffer")
-    input_line_name = "pipeline_test"
-    easement_points_name = "Easement_Points"
-    raster_path_name = "NAIP_USDA_CONUS_PRIME"
+    # Map reference
+    m = aprx.activeMap
 
-    # Get pipeline line and easement point layer locations in active map
-    input_line = None
-    easement_points = None
-    for lyr in m.listLayers():
-        if lyr.name == input_line_name:
-            input_line = lyr.dataSource
-        if lyr.name == easement_points_name:
-            easement_points = lyr.dataSource
+    # Input validation
+    input_line = pipeline_selection
 
-    if input_line is None:
-        raise ValueError(f"Layer '{input_line_name}' not found")
-    if easement_points is None:
-        raise ValueError(f"Layer '{easement_points_name}' not found")
-    
+    count = int(arcpy.management.GetCount(input_line)[0])
+    if count == 0:
+        raise ValueError("No pipeline features selected")
+
+    # Get easement point layer in active map
+    # easement_points = None
+    # for lyr in m.listLayers():
+    #     if lyr.name == EASEMENT_POINTS_NAME:
+    #         easement_points = lyr.dataSource
+
+    # if easement_points is None:
+    #     raise ValueError(f"Layer '{EASEMENT_POINTS_NAME}' not found")
+
+    # Internal data sources
+    easement_points = os.path.join(data_dir, EASEMENT_POINTS_NAME)
+
+    buffer_fc = os.path.join("in_memory", "easement_buffer")    # temporary data
+
+
+    # ----------------------------------------
+    # Processing
+    # ----------------------------------------
+
+    print("Processing started...")
+
     # Get polygon based on pipeline input
     polygon = get_polygon(input_line, easement_points, buffer_fc)
     
     # Clip raster to pipeline polygon
-    clipped_raster = clip_raster_to_polygon(m, raster_path_name, polygon)
+    clipped_raster = clip_raster_to_polygon(m, USA_RASTER_NAME, polygon)
 
     # Get deep learning model package path
     model_path = os.path.join(dl_model_dir, "HighResolutionLandCoverClassification_USA.dlpk")
@@ -327,12 +387,24 @@ def main():
     raster_classifications = analyze_easement(clipped_raster, model_path)
     
     # Save classified raster to notebook directory
-    output_raster_path = save_raster(raster_path, raster_classifications, symbology_dir, output_dir)
+    output_raster_path = save_raster(
+        USA_RASTER_NAME, 
+        raster_classifications, 
+        symbology_dir, 
+        output_raster
+    )
+
+    print("Processing complete")
     
     return output_raster_path
 
-# Run main
+
+# ----------------------------------------
+# Run Main
+# ----------------------------------------
 if __name__ == "__main__":
-    main()
+    pipeline_selection = arcpy.GetParameter(0)
+    output_raster = arcpy.GetParameterAsText(1)
+    main(pipeline_selection, output_raster)
 
 
