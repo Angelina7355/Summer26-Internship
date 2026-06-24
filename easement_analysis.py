@@ -239,14 +239,24 @@ def save_raster(input_raster_path, raster_classifications, symbology_dir, output
     # Ensure output folder exists
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-    # Save output raster to disc
+    # Ensure no issues with data type or NO_DATA
+    
+    out_raster = arcpy.sa.Int(out_raster)
+    out_raster = arcpy.sa.SetNull(out_raster == NO_DATA, out_raster)
+
+    # Save output raster to disk
     temp_raster = "in_memory/temp_raster"
 
     arcpy.AddMessage("Writing intermediate raster...")
     arcpy.management.CopyRaster(out_raster, temp_raster)
 
     arcpy.AddMessage("Writing final output raster...")
-    arcpy.management.CopyRaster(temp_raster, output_path)
+    
+    arcpy.management.CopyRaster(
+        temp_raster,
+        output_path,
+        pixel_type="8_BIT_UNSIGNED"
+    )
 
     arcpy.AddMessage("Raster save complete")
     
