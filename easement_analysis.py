@@ -367,7 +367,7 @@ def main(pipeline_selection, output_raster):
     
     # Save classified raster to notebook directory
     output_raster_path = save_raster(
-        USA_RASTER_NAME, 
+        clipped_raster, 
         raster_classifications, 
         symbology_dir, 
         output_raster
