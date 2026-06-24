@@ -85,7 +85,7 @@ def compute_ndvi_and_classify(input_raster, show_visual):
     # Apply NoData Mask
     ndvi_class[nodata_mask] = NO_DATA
     
-    arcpy.AddMessage("NDVI classes:", np.unique(ndvi_class))
+    arcpy.AddMessage(f"NDVI classes: {np.unique(ndvi_class)}")
     
     # Visualize NDVI
     if(show_visual):
@@ -140,7 +140,7 @@ def fuse_results(ndvi_class, dl_class):
     nodata_mask = (ndvi_class == NO_DATA)
     final[nodata_mask] = NO_DATA
     
-    arcpy.AddMessage("Final classes:", np.unique(final))
+    arcpy.AddMessage(f"Final classes: {np.unique(final)}")
 
     return final
 
