@@ -276,16 +276,16 @@ def analyze_easement(clipped_raster, model_path):
     ndvi, ndvi_class = compute_ndvi_and_classify(clipped_raster, show_visual=True)
 
     # Run deep learning model (ArcPy)
-    arcpy.AddMessage("Running deep learning model...")
-    dl_raster = run_dl_model(clipped_raster, model_path)
-#     dl_class[ndvi_class == NO_DATA] = NO_DATA
+    # arcpy.AddMessage("Running deep learning model...")
+    # dl_raster = run_dl_model(clipped_raster, model_path)
 
-    # Convert raster to numPy array
-    arcpy.AddMessage("Converting DL output to NumPy...")
-    dl_array = arcpy.RasterToNumPyArray(
-        arcpy.Raster(dl_raster), 
-        nodata_to_value=NO_DATA
-    )
+    # # Convert raster to numPy array
+    # arcpy.AddMessage("Converting DL output to NumPy...")
+    # dl_array = arcpy.RasterToNumPyArray(
+    #     arcpy.Raster(dl_raster), 
+    #     nodata_to_value=NO_DATA
+    # )
+    dl_array = ndvi_class.copy()
 
     # Fuse results
     arcpy.AddMessage("Fusing NDVI and DL results...")
