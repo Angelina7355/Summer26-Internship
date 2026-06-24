@@ -250,11 +250,7 @@ def save_raster(input_raster_path, raster_classifications, symbology_dir, output
 
     arcpy.AddMessage("Writing final output raster...")
     
-    arcpy.management.CopyRaster(
-        temp_raster,
-        output_path,
-        pixel_type="8_BIT_UNSIGNED"
-    )
+    arcpy.management.CopyRaster(temp_raster, output_path)
 
     arcpy.AddMessage("Raster save complete")
     
