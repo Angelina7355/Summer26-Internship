@@ -2,19 +2,14 @@
 #        Environment Setup & Verification        #
 ##################################################
 import sys
-print("Current Python executable:")
-print(sys.executable)
-
-print("\n\nAvailable conda environments:")
-!conda info --envs
-
-print("\nInstalled packages in the active environment:")
-!conda list
+arcpy.AddMessage("Current Python executable:")
+arcpy.AddMessage(sys.executable)
 
 
 ##################################################
 #              Global Definitions                #
 ##################################################
+
 
 # ----------------------------------------
 # Classes
@@ -90,7 +85,7 @@ def compute_ndvi_and_classify(input_raster, show_visual):
     # Apply NoData Mask
     ndvi_class[nodata_mask] = NO_DATA
     
-    print("NDVI classes:", np.unique(ndvi_class))
+    arcpy.AddMessage("NDVI classes:", np.unique(ndvi_class))
     
     # Visualize NDVI
     if(show_visual):
@@ -117,8 +112,6 @@ def run_dl_model(input_raster, model_path):
     )
     
     rgb_raster = arcpy.Raster(rgb_raster)
-
-    print(arcpy.Raster(rgb_raster).bandCount)
 
     result = ClassifyPixelsUsingDeepLearning(rgb_raster, model_path)
     return result
@@ -147,7 +140,7 @@ def fuse_results(ndvi_class, dl_class):
     nodata_mask = (ndvi_class == NO_DATA)
     final[nodata_mask] = NO_DATA
     
-    print("Final classes:", np.unique(final))
+    arcpy.AddMessage("Final classes:", np.unique(final))
 
     return final
 
@@ -158,7 +151,7 @@ def fuse_results(ndvi_class, dl_class):
 
 def get_polygon(pipeline_line, easement_points, output_fc):
     # Get polygon based on pipeline and closest easement point
-    print("Buffering pipeline selection...")
+    arcpy.AddMessage("Buffering pipeline selection...")
     
     # Find closest easement point to specified pipeline
     arcpy.analysis.Near(
@@ -168,7 +161,6 @@ def get_polygon(pipeline_line, easement_points, output_fc):
     
     # Define default WIDTH
     width = 20  # default = 20 yards (60 feet)
-    
     
     # Get object ID (NEAR_FID) of closest easement point
     near_fid = None
@@ -187,7 +179,7 @@ def get_polygon(pipeline_line, easement_points, output_fc):
         for row in cursor:
             width = row[0]
     
-    print(f"Using easement width: {width} yards")
+    arcpy.AddMessage(f"Using easement width: {width} yards")
     
     # Buffer pipeline line to get polygon output
     polygon = arcpy.analysis.Buffer(
@@ -213,10 +205,11 @@ def clip_raster_to_polygon(active_map, raster_path, input_polygon):
             input_raster = arcpy.Raster(lyr.dataSource)
 
     if input_raster is None:
+        arcpy.AddError(f"Layer '{raster_path}' not found")
         raise ValueError(f"Layer '{raster_path}' not found")
         
     # Clip the inputted polygon to the NAIP raster imagery
-    print("Clipping raster to polygon extent...")
+    arcpy.AddMessage("Clipping raster to polygon extent...")
     clipped_raster = arcpy.management.Clip(
         input_raster,
         "#",
@@ -235,7 +228,7 @@ def clip_raster_to_polygon(active_map, raster_path, input_polygon):
 
 def save_raster(input_raster_path, raster_classifications, symbology_dir, output_dir):
     # Preserve and save output as spatial reference (based on the input's spatial data)
-    print("Saving output raster...")
+    arcpy.AddMessage("Saving output raster...")
     os.makedirs(output_dir, exist_ok=True)
     
     raster_obj = arcpy.Raster(input_raster_path)
@@ -268,7 +261,7 @@ def save_raster(input_raster_path, raster_classifications, symbology_dir, output
     symbology_path = os.path.join(symbology_dir, "final_classification_symbology.lyrx")
     arcpy.management.ApplySymbologyFromLayer(added_layer, symbology_path)
     
-    print("Save complete")
+    arcpy.AddMessage("Save complete")
     
     return output_path
 
@@ -279,26 +272,26 @@ def save_raster(input_raster_path, raster_classifications, symbology_dir, output
 
 def analyze_easement(clipped_raster, model_path):
     # Run NDVI pipeline (NumPy)
-    print("Running NDVI pipeline...")
+    arcpy.AddMessage("Running NDVI pipeline...")
     ndvi, ndvi_class = compute_ndvi_and_classify(clipped_raster, show_visual=True)
 
     # Run deep learning model (ArcPy)
-    print("Running deep learning model...")
+    arcpy.AddMessage("Running deep learning model...")
     dl_raster = run_dl_model(clipped_raster, model_path)
 #     dl_class[ndvi_class == NO_DATA] = NO_DATA
 
     # Convert raster to numPy array
-    print("Converting DL output to NumPy...")
+    arcpy.AddMessage("Converting DL output to NumPy...")
     dl_array = arcpy.RasterToNumPyArray(
         arcpy.Raster(dl_raster), 
         nodata_to_value=NO_DATA
     )
 
     # Fuse results
-    print("Fusing NDVI and DL results...")
+    arcpy.AddMessage("Fusing NDVI and DL results...")
     final_classifications = fuse_results(ndvi_class, dl_array)
     
-    print("Easement analysis complete")
+    arcpy.AddMessage("Easement analysis complete")
     return final_classifications
 
 
@@ -312,7 +305,7 @@ def analyze_easement(clipped_raster, model_path):
 # ----------------------------------------
 
 # Imports
-print("Starting imports...")
+arcpy.AddMessage("Starting imports...")
 import os
 import arcpy
 import numpy as np
@@ -322,7 +315,7 @@ from arcpy.ia import ClassifyPixelsUsingDeepLearning
 
 # Global setting
 arcpy.env.overwriteOutput = True
-print("Imports complete")
+arcpy.AddMessage("Imports complete")
 
 
 # ----------------------------------------
@@ -330,9 +323,9 @@ print("Imports complete")
 # ----------------------------------------
 
 def main(pipeline_selection, output_raster):
-    print("Starting connect to GIS...")
+    arcpy.AddMessage("Starting connect to GIS...")
     gis = GIS("home")
-    print("GIS connection complete")
+    arcpy.AddMessage("GIS connection complete")
     
     # Directory structure
     aprx = arcpy.mp.ArcGISProject("CURRENT")
@@ -350,6 +343,7 @@ def main(pipeline_selection, output_raster):
 
     count = int(arcpy.management.GetCount(input_line)[0])
     if count == 0:
+        arcpy.AddMessage("No pipeline features selected")
         raise ValueError("No pipeline features selected")
 
     # Internal data sources
@@ -366,7 +360,7 @@ def main(pipeline_selection, output_raster):
     # Processing
     # ----------------------------------------
 
-    print("Processing started...")
+    arcpy.AddMessage("Processing started...")
 
     # Get polygon based on pipeline input
     polygon = get_polygon(input_line, easement_points, buffer_fc)
@@ -388,7 +382,7 @@ def main(pipeline_selection, output_raster):
         output_raster
     )
 
-    print("Processing complete")
+    arcpy.AddMessage("Processing complete")
     
     return output_raster_path
 
