@@ -50,7 +50,6 @@ NO_DATA = CLASSES["NO DATA"]
 # ----------------------------------------
 # Internal Datasets
 # ----------------------------------------
-EASEMENT_POINTS_NAME = "Easement_Points"
 USA_RASTER_NAME = "NAIP_USDA_CONUS_PRIME"
 
 
@@ -353,17 +352,12 @@ def main(pipeline_selection, output_raster):
     if count == 0:
         raise ValueError("No pipeline features selected")
 
-    # Get easement point layer in active map
-    # easement_points = None
-    # for lyr in m.listLayers():
-    #     if lyr.name == EASEMENT_POINTS_NAME:
-    #         easement_points = lyr.dataSource
-
-    # if easement_points is None:
-    #     raise ValueError(f"Layer '{EASEMENT_POINTS_NAME}' not found")
-
     # Internal data sources
-    easement_points = os.path.join(data_dir, EASEMENT_POINTS_NAME)
+    easement_points = os.path.join(
+        project_dir,
+        "ROW Project.gdb",
+        "easement_points"
+    )
 
     buffer_fc = os.path.join("in_memory", "easement_buffer")    # temporary data
 
