@@ -244,24 +244,10 @@ def save_raster(input_raster_path, raster_classifications, symbology_dir, output
     # Assign projection (coordinates)
     arcpy.DefineProjection_management(out_raster, raster_obj.spatialReference)
 
-    # Save raster
-    output_path = os.path.join(output_dir, "final_classification.tif")
+    # Save using tool output
     out_raster.save(output_path)
-    
-    # --- Add to map ---
-    aprx = arcpy.mp.ArcGISProject("CURRENT")
-    m = aprx.listMaps("Map2")[0]
 
-    m.addDataFromPath(output_path)
-
-    # Get the newly added layer (last one in map)
-    added_layer = m.listLayers()[-1]
-
-    # Apply symbology to saved raster
-    symbology_path = os.path.join(symbology_dir, "final_classification_symbology.lyrx")
-    arcpy.management.ApplySymbologyFromLayer(added_layer, symbology_path)
-    
-    arcpy.AddMessage("Save complete")
+    arcpy.AddMessage("Raster save complete")
     
     return output_path
 
