@@ -236,8 +236,16 @@ def save_raster(input_raster_path, raster_classifications, symbology_dir, output
     # Assign projection (coordinates)
     arcpy.DefineProjection_management(out_raster, raster_obj.spatialReference)
 
-    # Save using tool output
-    arcpy.management.CopyRaster(out_raster, output_path)
+    # Save output raster to disc
+    temp_raster = "in_memory/temp_raster"
+
+    arcpy.AddMessage("Writing intermediate raster...")
+    arcpy.management.CopyRaster(out_raster, temp_raster)
+
+    arcpy.AddMessage("Writing final output raster...")
+    arcpy.management.CopyRaster(temp_raster, output_path)
+
+    # arcpy.management.CopyRaster(out_raster, output_path)
 
     arcpy.AddMessage("Raster save complete")
     
