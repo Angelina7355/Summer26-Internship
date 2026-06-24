@@ -57,7 +57,7 @@ USA_RASTER_NAME = "NAIP_USDA_CONUS_PRIME"
 # NDVI & DL Functions
 # ----------------------------------------
 
-def compute_ndvi_and_classify(input_raster, show_visual):
+def compute_ndvi_and_classify(input_raster):
     raster = arcpy.Raster(input_raster)
     
     # Convert to NumPy for pixel-wise NDVI computation
@@ -86,14 +86,6 @@ def compute_ndvi_and_classify(input_raster, show_visual):
     ndvi_class[nodata_mask] = NO_DATA
     
     arcpy.AddMessage(f"NDVI classes: {np.unique(ndvi_class)}")
-    
-    # Visualize NDVI
-    if(show_visual):
-        import matplotlib.pyplot as plt
-        plt.imshow(ndvi, cmap="RdYlGn")
-        plt.colorbar()
-        plt.title("NDVI")
-        plt.show()
 
     return ndvi, ndvi_class
 
@@ -245,7 +237,7 @@ def save_raster(input_raster_path, raster_classifications, symbology_dir, output
     arcpy.DefineProjection_management(out_raster, raster_obj.spatialReference)
 
     # Save using tool output
-    out_raster.save(output_path)
+    arcpy.management.CopyRaster(out_raster, output_path)
 
     arcpy.AddMessage("Raster save complete")
     
@@ -259,7 +251,7 @@ def save_raster(input_raster_path, raster_classifications, symbology_dir, output
 def analyze_easement(clipped_raster, model_path):
     # Run NDVI pipeline (NumPy)
     arcpy.AddMessage("Running NDVI pipeline...")
-    ndvi, ndvi_class = compute_ndvi_and_classify(clipped_raster, show_visual=True)
+    ndvi, ndvi_class = compute_ndvi_and_classify(clipped_raster)
 
     # Run deep learning model (ArcPy)
     # arcpy.AddMessage("Running deep learning model...")
