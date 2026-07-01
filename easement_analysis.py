@@ -144,19 +144,25 @@ def fuse_results(ndvi_class, dl_class):
 def get_polygon(pipeline_line, easement_points, output_fc):
     # Get polygon based on pipeline and closest easement point
     arcpy.AddMessage("Buffering pipeline selection...")
+
+    # Isolate specified line from rest of feature class
+    selected_line = arcpy.management.CopyFeatures(
+        pipeline_line,
+        "in_memory/selected_line"
+    )
     
     # Find closest easement point to specified pipeline
     arcpy.analysis.Near(
-        in_features=pipeline_line, 
+        in_features=selected_line, 
         near_features=easement_points
     )
     
     # Define default WIDTH
-    width = 20  # default = 20 yards (60 feet)
+    width = 40  # default = 20 yards (60 feet)
     
     # Get object ID (NEAR_FID) of closest easement point
     near_fid = None
-    with arcpy.da.SearchCursor(pipeline_line, ["NEAR_FID"]) as cursor:
+    with arcpy.da.SearchCursor(selected_line, ["NEAR_FID"]) as cursor:
         for row in cursor:
             near_fid = row[0]
 
@@ -170,16 +176,27 @@ def get_polygon(pipeline_line, easement_points, output_fc):
     ) as cursor:
         for row in cursor:
             width = row[0]
-    
-    arcpy.AddMessage(f"Using easement width: {width} yards")
+
+    # Identify pipeline's linear units
+    sr = arcpy.Describe(pipeline_line).spatialReference
+
+    if sr.linearUnitName.lower() in ["meter", "meters"]:
+        width_converted = width * 0.9144   # yards -> meters
+    elif sr.linearUnitName.lower() in ["foot", "feet"]:
+        width_converted = width * 3        # yards -> feet
+    else:
+        width_converted = width  # fallback
+
+    distance_str = f"{width_converted} {sr.linearUnitName}"
+    arcpy.AddMessage(f"Using easement width: {distance_str}")
     
     # Buffer pipeline line to get polygon output
     polygon = arcpy.analysis.Buffer(
-        in_features=pipeline_line,
+        in_features=selected_line,
         out_feature_class=output_fc,
-        buffer_distance_or_field=f"{width} Yards",
+        buffer_distance_or_field=distance_str,
         line_side="FULL",
-        line_end_type="FLAT",
+        line_end_type="ROUND",
         dissolve_option="ALL"
     )
 
