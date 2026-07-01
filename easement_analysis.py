@@ -2,8 +2,22 @@
 #        Environment Setup & Verification        #
 ##################################################
 import sys
-arcpy.AddMessage("Current Python executable:")
-arcpy.AddMessage(sys.executable)
+arcpy.AddMessage(f"sys.executable (Python) = {sys.executable}")
+arcpy.AddMessage(f"sys.prefix = {sys.prefix}")
+
+import torch
+import torchvision
+import timm
+
+arcpy.AddMessage(f"torch = {torch.__version__}")
+arcpy.AddMessage(f"torchvision = {torchvision.__version__}")
+arcpy.AddMessage(f"timm = {timm.__version__}")
+
+try:
+    import arcgis.learn
+    arcpy.AddMessage("arcgis.learn imported successfully")
+except Exception as e:
+    arcpy.AddError(f"arcgis.learn failed: {e}")
 
 
 ##################################################
