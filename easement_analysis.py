@@ -207,7 +207,7 @@ def clip_raster_to_polygon(active_map, raster_path, input_polygon):
     # Specify active map for sourcing raster layer
     m = active_map
 
-    # Get raster path
+    # Get raster service layer
     input_raster = None
     for lyr in m.listLayers():
         if lyr.name == raster_path:
@@ -221,7 +221,7 @@ def clip_raster_to_polygon(active_map, raster_path, input_polygon):
         
     # Clip the inputted polygon to the NAIP raster imagery
     arcpy.AddMessage("Clipping raster to polygon extent...")
-    clipped_raster = arcpy.management.Clip(
+    clipped_raster_layer = arcpy.management.Clip(
         input_raster,
         "#",
         "in_memory/temp_clip",
@@ -230,10 +230,11 @@ def clip_raster_to_polygon(active_map, raster_path, input_polygon):
         "ClippingGeometry"
     )
 
+    # Convert clipped NAIP service into a local raster
     arcpy.AddMessage("Converting clipped image service to real raster...")
 
     local_raster = arcpy.management.CopyRaster(
-        clipped_raster,
+        clipped_raster_layer,
         "in_memory/local_clip"
     )
 
