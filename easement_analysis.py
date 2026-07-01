@@ -211,7 +211,9 @@ def clip_raster_to_polygon(active_map, raster_path, input_polygon):
     input_raster = None
     for lyr in m.listLayers():
         if lyr.name == raster_path:
-            input_raster = arcpy.Raster(lyr.dataSource)
+            input_raster = lyr
+            # input_raster = arcpy.Raster(lyr.dataSource)
+            break
 
     if input_raster is None:
         arcpy.AddError(f"Layer '{raster_path}' not found")
@@ -228,7 +230,14 @@ def clip_raster_to_polygon(active_map, raster_path, input_polygon):
         "ClippingGeometry"
     )
 
-    return clipped_raster
+    arcpy.AddMessage("Converting clipped image service to real raster...")
+
+    local_raster = arcpy.management.CopyRaster(
+        clipped_raster,
+        "in_memory/local_clip"
+    )
+
+    return local_raster
 
 
 # ----------------------------------------
@@ -278,10 +287,10 @@ def save_raster(input_raster_path, raster_classifications, symbology_dir, output
 #           Easement Analysis Pipeline           #
 ##################################################
 
-def analyze_easement(clipped_raster, model_path):
+def analyze_easement(local_raster, model_path):
     # Run NDVI pipeline (NumPy)
     arcpy.AddMessage("Running NDVI pipeline...")
-    ndvi, ndvi_class = compute_ndvi_and_classify(clipped_raster)
+    ndvi, ndvi_class = compute_ndvi_and_classify(local_raster)
 
     # Run deep learning model (ArcPy)
     # arcpy.AddMessage("Running deep learning model...")
@@ -374,17 +383,17 @@ def main(pipeline_selection, output_raster):
     polygon = get_polygon(input_line, easement_points, buffer_fc)
     
     # Clip raster to pipeline polygon
-    clipped_raster = clip_raster_to_polygon(m, USA_RASTER_NAME, polygon)
+    local_raster = clip_raster_to_polygon(m, USA_RASTER_NAME, polygon)
 
     # Get deep learning model package path
     model_path = os.path.join(dl_model_dir, "HighResolutionLandCoverClassification_USA.dlpk")
     
     # Run easement analysis pipeline
-    raster_classifications = analyze_easement(clipped_raster, model_path)
+    raster_classifications = analyze_easement(local_raster, model_path)
     
     # Save classified raster to notebook directory
     output_raster_path = save_raster(
-        clipped_raster, 
+        local_raster, 
         raster_classifications, 
         symbology_dir, 
         output_raster
