@@ -294,7 +294,7 @@ def analyze_easement(local_raster, model_path):
 
     # Run deep learning model (ArcPy)
     arcpy.AddMessage("Running deep learning model...")
-    dl_raster = run_dl_model(clipped_raster, model_path)
+    dl_raster = run_dl_model(local_raster, model_path)
 
     # Convert raster to numPy array
     arcpy.AddMessage("Converting DL output to NumPy...")
